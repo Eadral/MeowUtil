@@ -7,27 +7,57 @@ import (
 )
 
 var (
-	info *log.Logger
-	warning *log.Logger
-	error *log.Logger
+	infoLogger      *log.Logger
+	warningLogger   *log.Logger
+	errorLogger     *log.Logger
+	disableOutput   bool
+	conditionOutput bool
 )
 
 func init() {
-	flags := log.Ldate | log.Ltime | log.Llongfile
-	info = log.New(os.Stdout, "[INFO]", flags)
-	warning = log.New(os.Stderr, "[WARN]", flags)
-	error = log.New(os.Stderr, "[ERROR]", flags)
+	flags := log.Ldate | log.Ltime | log.Lshortfile
+	infoLogger = log.New(os.Stdout, "[INFO]", flags)
+	warningLogger = log.New(os.Stderr, "[WARN]", flags)
+	errorLogger = log.New(os.Stderr, "[ERROR]", flags)
+
+	if os.Getenv("MEOWLOG") == "" {
+		disableOutput = true
+	}
 }
 
-func Info(format string, v... interface{}) {
-	info.Output(3, fmt.Sprintf(format, v...))
+func ConditionOutput(yes bool) {
+	conditionOutput = yes
 }
 
-func Warning(format string, v... interface{}) {
-	warning.Output(3, fmt.Sprintf(format, v...))
+func Info(format string, v ...interface{}) {
+	if conditionOutput && !disableOutput {
+		infoLogger.Output(2, fmt.Sprintf(format, v...))
+	}
 }
 
-func Error(format string, v... interface{}) {
-	error.Output(3, fmt.Sprintf(format, v...))
+func Warning(format string, v ...interface{}) {
+	if conditionOutput && !disableOutput {
+		warningLogger.Output(2, fmt.Sprintf(format, v...))
+	}
 }
 
+func Error(format string, v ...interface{}) {
+	if conditionOutput && !disableOutput {
+		errorLogger.Output(2, fmt.Sprintf(format, v...))
+	}
+}
+
+func ERR(format string, v ...interface{}) error {
+	newErr := fmt.Errorf(format, v...)
+	if conditionOutput && !disableOutput {
+		errorLogger.Output(2, newErr.Error())
+	}
+	return newErr
+}
+
+func Fatal(format string, v ...interface{}) {
+	if conditionOutput && !disableOutput {
+		errorLogger.Output(2, fmt.Sprintf(format, v...))
+	}
+	os.Exit(1)
+}
